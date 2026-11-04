@@ -2,20 +2,30 @@ package com.notificationhub.notification_hub.model;
 
 import com.notificationhub.notification_hub.enumeracao.NotificationChannel;
 import com.notificationhub.notification_hub.enumeracao.NotificationStatus;
+import jakarta.persistence.*;
 
 import java.util.Objects;
 
+@Entity
+@Table(name = "tb_notification")
 public class Notification {
 
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
     private String recipient;
 
     private String message;
 
+    @Enumerated(EnumType.STRING)
     private NotificationChannel channel;
 
+    @Enumerated(EnumType.STRING)
     private NotificationStatus status;
+
+    protected Notification(){
+    }
 
     public Notification(String recipient, String message, NotificationChannel channel){
         this.recipient = recipient;
@@ -68,12 +78,12 @@ public class Notification {
     public boolean equals(Object o) {
         if (o == null || getClass() != o.getClass()) return false;
         Notification that = (Notification) o;
-        return Objects.equals(id, that.id);
+        return id != null && Objects.equals(id, that.id);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hashCode(id);
+        return Notification.class.hashCode();
     }
 
     @Override

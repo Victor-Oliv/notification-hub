@@ -10,6 +10,8 @@ import com.notificationhub.notification_hub.repository.NotificationRepository;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
 
+import java.util.Optional;
+
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
@@ -24,7 +26,7 @@ public class NotificationServiceTest {
     @Test
     void deveLancarExcecaoQuandoNotificacaoNaoExiste() {
         Mockito.when(notificationRepository.findById(999L))
-                .thenReturn(null);
+                .thenReturn(Optional.empty());
 
         assertThrows(
                 NotificationNotFoundException.class,
@@ -44,7 +46,7 @@ public class NotificationServiceTest {
         notification.setId(1L);
 
         Mockito.when(notificationRepository.findById(1L))
-                .thenReturn(notification);
+                .thenReturn(Optional.of(notification));
 
         Notification resultado = notificationService.findById(1L);
 

@@ -5,7 +5,6 @@ import com.notificationhub.notification_hub.exception.NotificationNotFoundExcept
 import com.notificationhub.notification_hub.model.Notification;
 import com.notificationhub.notification_hub.repository.NotificationRepository;
 import org.springframework.stereotype.Service;
-import org.springframework.util.ObjectUtils;
 
 @Service
 public class NotificationService {
@@ -30,11 +29,8 @@ public class NotificationService {
 
     public Notification findById(Long id){
 
-        Notification notification = notificationRepository.findById(id);
-
-        if(notification == null){
-           throw new NotificationNotFoundException(id);
-        }
+        Notification notification = notificationRepository.findById(id)
+                .orElseThrow(() -> new NotificationNotFoundException(id));
 
         return notification;
     }
