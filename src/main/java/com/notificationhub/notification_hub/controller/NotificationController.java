@@ -1,9 +1,13 @@
 package com.notificationhub.notification_hub.controller;
 
 import com.notificationhub.notification_hub.dto.NotificationRequestDTO;
+import com.notificationhub.notification_hub.enumeracao.NotificationChannel;
+import com.notificationhub.notification_hub.enumeracao.NotificationStatus;
 import com.notificationhub.notification_hub.model.Notification;
 import com.notificationhub.notification_hub.service.NotificationService;
 import jakarta.validation.Valid;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -37,5 +41,18 @@ public class NotificationController {
                 notificationService.findById(id);
 
         return ResponseEntity.ok(notification);
+    }
+
+    @GetMapping
+    public ResponseEntity<Page<Notification>> getAllNotification(
+            @RequestParam(name = "status", required = false) NotificationStatus status,
+            @RequestParam(name = "channel", required = false)NotificationChannel channel,
+            Pageable pageable
+            ){
+
+        Page<Notification> notifications = notificationService
+                .findAllNotification(status, channel, pageable);
+
+        return ResponseEntity.ok(notifications);
     }
 }
