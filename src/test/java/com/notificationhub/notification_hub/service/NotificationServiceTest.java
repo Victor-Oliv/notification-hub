@@ -1,27 +1,38 @@
 package com.notificationhub.notification_hub.service;
 
-import ch.qos.logback.core.testUtil.MockInitialContext;
 import com.notificationhub.notification_hub.dto.NotificationRequestDTO;
 import com.notificationhub.notification_hub.enumeracao.NotificationChannel;
 import com.notificationhub.notification_hub.enumeracao.NotificationStatus;
 import com.notificationhub.notification_hub.exception.NotificationNotFoundException;
 import com.notificationhub.notification_hub.model.Notification;
+import com.notificationhub.notification_hub.provider.NotificationProvider;
 import com.notificationhub.notification_hub.repository.NotificationRepository;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.InjectMocks;
+import org.mockito.Mock;
 import org.mockito.Mockito;
+import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.mail.MailSendException;
+import static org.mockito.ArgumentMatchers.any;
 
 import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.mockito.Mockito.*;
 
-public class NotificationServiceTest {
+@ExtendWith(MockitoExtension.class)
+class NotificationServiceTest {
 
-    private final NotificationRepository notificationRepository =
-            Mockito.mock(NotificationRepository.class);
+    @Mock
+    private NotificationRepository notificationRepository;
 
-    private final NotificationService notificationService =
-            new NotificationService(notificationRepository);
+    @Mock
+    private NotificationProvider notificationProvider;
+
+    @InjectMocks
+    private NotificationService notificationService;
 
     @Test
     void deveLancarExcecaoQuandoNotificacaoNaoExiste() {
@@ -55,7 +66,7 @@ public class NotificationServiceTest {
     }
 
     @Test
-    void deveCriarNotificacaoComStatusPending() {
+    void deveCriarNotificacaoComStatusSent() {
         NotificationRequestDTO notificationRequestDTO=  new NotificationRequestDTO(
                 "joao@teste.com",
                 "Mensagem de teste",
@@ -71,7 +82,48 @@ public class NotificationServiceTest {
 
         Notification resultado = notificationService.create(notificationRequestDTO);
 
-        assertEquals(NotificationStatus.PENDING, resultado.getStatus());
+        assertEquals(NotificationStatus.SENT, resultado.getStatus());
         assertEquals(1L, resultado.getId());
+
+        verify(notificationProvider, times(1)).sendNotification(Mockito.any(Notification.class));
+    }
+
+    @Test
+    void shouldRejectUnsupportedNotificationChannel(){
+        NotificationRequestDTO notification = new NotificationRequestDTO(
+                "joao@teste.com",
+                "Ola mundo",
+                NotificationChannel.SMS);
+
+        assertThrows(
+                IllegalArgumentException.class,
+                () -> {
+                    notificationService.create(notification);
+                }
+        );
+
+        verifyNoInteractions(notificationRepository);
+        verifyNoInteractions(notificationProvider);
+    }
+
+    @Test
+    void shouldMarkNotificationAsFailedWhenEmailSendingFails() {
+
+        NotificationRequestDTO notification = new NotificationRequestDTO(
+                "joao@teste.com",
+                "Ola mundo",
+                NotificationChannel.EMAIL);
+
+
+        doThrow(new MailSendException("SMTP indisponível"))
+                .when(notificationProvider)
+                .sendNotification(any(Notification.class));
+
+        Notification result = notificationService.create(notification);
+
+        assertEquals(NotificationStatus.FAILED, result.getStatus());
+
+        verify(notificationRepository, times(2)).save(Mockito.any(Notification.class));
+
     }
 }

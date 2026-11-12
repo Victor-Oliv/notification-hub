@@ -74,6 +74,14 @@ public class Notification {
         this.status = status;
     }
 
+    public void markAsSent(){
+        this.status = NotificationStatus.SENT;
+    }
+
+    public void markAsFailed(){
+        this.status = NotificationStatus.FAILED;
+    }
+
     @Override
     public boolean equals(Object o) {
         if (o == null || getClass() != o.getClass()) return false;
