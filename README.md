@@ -136,4 +136,193 @@ O fluxo de criação funciona da seguinte maneira:
 
 ### Status das notificações
 
-| Status | Des
+| Status | Descrição |
+|---|---|
+| `PENDING` | Notificação criada e ainda não concluída |
+| `SENT` | Mensagem aceita pelo servidor SMTP |
+| `FAILED` | Falha durante a tentativa de envio |
+
+**Importante:** o status `SENT` indica sucesso na operação SMTP, não confirmação de entrega na caixa de entrada final do destinatário.
+
+## 🌐 Exemplo de utilização da API
+
+### Criar uma notificação
+
+**Método:** `POST`
+
+**Endpoint:**
+
+```http
+POST http://localhost:8080/notifications
+```
+
+**Body:**
+
+```json
+{
+  "recipient": "joao@teste.com",
+  "message": "Teste real do MVP 3 - Notification Hub",
+  "channel": "EMAIL"
+}
+```
+
+### Exemplo de resposta — envio bem-sucedido
+
+**HTTP 201 Created**
+
+```json
+{
+  "recipient": "joao@teste.com",
+  "message": "Teste real do MVP 3 - Notification Hub",
+  "channel": "EMAIL",
+  "id": 3,
+  "status": "SENT"
+}
+```
+
+### Exemplo de resposta — falha SMTP
+
+**HTTP 201 Created**
+
+```json
+{
+  "recipient": "joao@teste.com",
+  "message": "Teste de falha SMTP - MVP 3",
+  "channel": "EMAIL",
+  "id": 4,
+  "status": "FAILED"
+}
+```
+
+### Comportamento HTTP
+
+Atualmente, a API retorna `201 Created` quando o recurso de notificação é criado, mesmo que a tentativa de envio resulte em `FAILED`.
+
+Isso ocorre porque a criação do recurso e o sucesso do envio são operações distintas.
+
+O consumidor da API deve consultar o campo `status` para identificar o resultado da tentativa de envio.
+
+## 🐳 Ambiente local
+
+O ambiente de desenvolvimento utiliza Docker para executar PostgreSQL e Mailpit.
+
+### PostgreSQL
+
+Responsável pelo armazenamento das notificações e seus respectivos status.
+
+### Mailpit
+
+Utilizado para receber e visualizar e-mails durante o desenvolvimento, sem realizar entregas reais para destinatários externos.
+
+**Configuração SMTP local:**
+
+```properties
+spring.mail.host=localhost
+spring.mail.port=1025
+```
+
+**Interface web do Mailpit:**
+
+```text
+http://localhost:8025
+```
+
+As configurações do PostgreSQL e dos demais serviços devem corresponder ao ambiente local definido no projeto.
+
+### Executando a aplicação
+
+1. Inicie o Docker.
+2. Inicie os serviços PostgreSQL e Mailpit conforme a configuração Docker do projeto.
+3. Confirme que o banco de dados está disponível.
+4. Inicie a aplicação Spring Boot.
+5. Utilize o Postman ou outro cliente HTTP para enviar requisições.
+6. Acesse o Mailpit para visualizar os e-mails enviados.
+
+## 🧪 Testes automatizados
+
+O projeto conta com testes unitários e de integração.
+
+### Testes unitários
+
+Utilizam **JUnit 5 e Mockito** para validar as regras de negócio sem depender de serviços externos.
+
+Entre os cenários testados estão:
+
+- Rejeição de canais de envio ainda não suportados
+- Envio de notificações por meio do Provider
+- Transição de status `PENDING → SENT`
+- Transição de status `PENDING → FAILED`
+- Tratamento de exceções durante o envio SMTP
+- Verificação das chamadas ao repositório
+
+### Testes de integração
+
+Os testes de persistência utilizam **Testcontainers com PostgreSQL real**, permitindo validar operações de banco de dados e comportamento de transações.
+
+O projeto também possui teste de integração do `EmailProvider` com o Mailpit, validando o envio SMTP.
+
+### Executando os testes
+
+**Linux/macOS:**
+
+```bash
+./mvnw clean test
+```
+
+**Windows (PowerShell):**
+
+```powershell
+.\mvnw.cmd clean test
+```
+
+Os testes que utilizam Testcontainers exigem Docker em execução.
+
+O teste de integração do `EmailProvider` também exige que o Mailpit esteja disponível na configuração utilizada pelo projeto.
+
+**Status:** suíte completa executada com sucesso após a implementação do MVP 3.
+
+## ✅ Validação manual do MVP 3
+
+Além dos testes automatizados, foram executados testes reais de ponta a ponta.
+
+### Cenário 1 — Envio com sucesso
+
+- Requisição `POST /notifications`
+- Resposta HTTP `201 Created`
+- Status retornado: `SENT`
+- E-mail recebido pelo Mailpit
+- Status `SENT` confirmado no PostgreSQL
+
+**Resultado:** aprovado.
+
+### Cenário 2 — Falha SMTP
+
+- Mailpit temporariamente indisponível
+- Requisição `POST /notifications`
+- Resposta HTTP `201 Created`
+- Status retornado: `FAILED`
+- Status `FAILED` confirmado no PostgreSQL
+
+**Resultado:** aprovado.
+
+Esses cenários validam a integração entre API, Service, Provider, SMTP e banco de dados.
+
+## 🗺️ Próximas etapas
+
+- Integração com Amazon SQS
+- Processamento assíncrono de notificações
+- Evolução do suporte a outros canais, como SMS
+- Integração com serviços AWS
+- Implementação de estratégias de retry
+- Evolução da observabilidade e do monitoramento
+- Ampliação dos testes automatizados
+
+## 📌 Observações
+
+O projeto está em desenvolvimento contínuo e evolui por meio de MVPs.
+
+Até o MVP 3, a aplicação oferece persistência em PostgreSQL e envio síncrono de notificações por e-mail via SMTP.
+
+O envio por SMS ainda não está implementado.
+
+O Mailpit é utilizado como ambiente local de testes de e-mail. A integração com serviços de entrega de e-mail em produção e o processamento assíncrono fazem parte da evolução futura do projeto.
