@@ -16,6 +16,8 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.mail.MailSendException;
 import static org.mockito.ArgumentMatchers.any;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -73,16 +75,21 @@ class NotificationServiceTest {
                 NotificationChannel.EMAIL
         );
 
+        List<NotificationStatus> notificationStatusList = new ArrayList<>();
+
         Mockito.when(notificationRepository.save(Mockito.any(Notification.class)))
                 .thenAnswer(invocation -> {
                     Notification notification = invocation.getArgument(0);
+                    notificationStatusList.add(notification.getStatus());
                     notification.setId(1L);
                     return notification;
                 });
 
         Notification resultado = notificationService.create(notificationRequestDTO);
 
-        assertEquals(NotificationStatus.SENT, resultado.getStatus());
+
+        assertEquals(NotificationStatus.PENDING, notificationStatusList.get(0));
+        assertEquals(NotificationStatus.SENT, notificationStatusList.get(1));
         assertEquals(1L, resultado.getId());
 
         verify(notificationProvider, times(1)).sendNotification(Mockito.any(Notification.class));
@@ -114,14 +121,23 @@ class NotificationServiceTest {
                 "Ola mundo",
                 NotificationChannel.EMAIL);
 
+        List<NotificationStatus> notificationStatusList = new ArrayList<>();
 
         doThrow(new MailSendException("SMTP indisponível"))
                 .when(notificationProvider)
                 .sendNotification(any(Notification.class));
 
+        Mockito.when(notificationRepository.save(Mockito.any(Notification.class)))
+                .thenAnswer(invocation -> {
+                    Notification notification1 = invocation.getArgument(0);
+                    notificationStatusList.add(notification1.getStatus());
+                    return notification1;
+                });
+
         Notification result = notificationService.create(notification);
 
-        assertEquals(NotificationStatus.FAILED, result.getStatus());
+        assertEquals(NotificationStatus.PENDING, notificationStatusList.get(0));
+        assertEquals(NotificationStatus.FAILED, notificationStatusList.get(1));
 
         verify(notificationRepository, times(2)).save(Mockito.any(Notification.class));
 
